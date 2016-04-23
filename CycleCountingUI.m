@@ -26,19 +26,19 @@ function CycleCountingUI
 % Build Panels for layout
     inputPanel = uipanel(f,...
                     'Position', [0,0,.25,1])
-    timeHistoryPanel = uipanel(f,...
-                    'Position', [.25,.6,.5,.4])
-    frequencyResponsePanel = uipanel(f,...
-                    'Position', [.25,.2,.5,.4])
     OutputFileLocationPanel = uipanel(f,...
                     'Position', [.25,0,.75,.2])
-    histogram3DPanel = uipanel(f,...
-                    'Position', [.75,.6,.25,.4])
-    histogram2DPanel = uipanel(f,...
-                    'Position', [.75,.2,.25,.4])
     inputControlPanel = uipanel('Parent',inputPanel,...
                     'Position', [.10,.4,.80,.25],...
-                    'Visible','off')  
+                    'Visible','off')
+
+                
+% Position the plots used in the figure
+    timeHistoryPlot = axes('OuterPosition', [.25,.6,.5,.4])
+    frequencyResponsePlot = axes('OuterPosition', [.25,.2,.5,.4])
+    histogram3DPlot = axes('OuterPosition', [.75,.6,.25,.4])
+    histogram2DPlot = axes('OuterPosition', [.75,.2,.25,.4])
+    
 
 % Construct the components
     % Text
@@ -53,25 +53,29 @@ function CycleCountingUI
                 'String','Input Type',...
                	'FontSize',12);
     % Drop-down Menus
-        DropSize = [120,20]
+        DropSize = [.75,.2]
         
         % Input Options
             inputOp = uicontrol(inputPanel,'Style','popupmenu',...
-                'Units','pixels',...
-                'Position',[15,0,DropSize],...
+                'Units','normalize',...
+                'Position',[.15,.7,DropSize],...
                 'String',{'Input Options','----------',...
-                        'Waveforms',...
+                        'Example Waveforms',...
                         'From File',...
                         'Waveform Generator'})
+
             
-            inputOp.Units = 'normalize'
-            inputOp.Position(2) = .8
-            inputOp.Units = 'pixels'
+        % Waveform Options
+            waveOp = uicontrol(inputPanel,'Style','popupmenu',...
+                'Units','normalize',...
+                'Position',[.15,inputOp.Position(2)-.1,DropSize],...
+                'String',{'Waveforms','----------'},...
+                'Enable','Off')
             
          % Cycle Counting Options
             cycleOp = uicontrol(inputPanel,'Style','popupmenu',...
-                'Units','pixels',...
-                'Position',[15,0,DropSize],...
+                'Units','normalize',...
+                'Position',[.15,waveOp.Position(2)-.1,DropSize],...
                 'String',{'Counting Method','----------',...
                         'Simple Range',...
                         'Peak Valley Counting',...
@@ -84,56 +88,122 @@ function CycleCountingUI
                         'RMS Method'},...
                 'Enable','Off')
             
-            cycleOp.Units = 'normalize'
-            cycleOp.Position(2) = .7
-            cycleOp.Units = 'pixels'
-     
-     
+        % File Input field and button
+            filePanel = uicontrol(inputPanel,'Style','edit',...
+                'Units','pixels',...
+                'Position',[15,0,DropSize],...
+                'Enable','Off')
+            filePanel.Units = 'normalize'
+            filePanel.Position(2) = .3
+            filePanel.Units = 'pixels'
+            
+            broswerButton = uicontrol(inputPanel,'Style','pushbutton',...
+                'Units','pixels',...
+                'String','O',...
+                'Position',[140 filePanel.Position(2) filePanel.Position(4) filePanel.Position(4)],...
+                'Enable','off')
+        
         % Set Callbacks
-        inputOp.UserData = {cycleOp,timeHistoryPanel}
-        inputOp.Callback = @inputOp_Callback
-        cycleOp.UserData = {inputControlPanel}
-        cycleOp.Callback = @cycleOp_Callback
+        inputOp.Callback = {@inputOp_Callback,{cycleOp,timeHistoryPlot,filePanel,broswerButton,waveOp}}
+        cycleOp.Callback = {@cycleOp_Callback,{inputControlPanel,histogram3DPlot}}
+        broswerButton.Callback = {@fileSelection_Callback,filePanel}
         
 % Make the UI visible.
     f.Visible = 'on';
 end
 
 % Callback Functions
-    % Random Number Callback
-    function inputOp_Callback(handle,data)
+    % Input Option Callback
+    function inputOp_Callback(handle,data,CBPara)
         
         % Enable all Cycle Counting Options 
-        cycleOp = handle.UserData{1}
-        timeHistoryPanel = handle.UserData{2}
-        cycleOp.Enable = 'on'
+        cycleOp = CBPara{1}
+        timeHistoryPlot = CBPara{2}
+        filePanel = CBPara{3}
+        broswerButton = CBPara{4}
+        waveOp = CBPara{5}
         
+        
+        % Determine which button was pressed
+        selection = handle.Value
+        selected = handle.String{selection}
+        
+    if selection > 2
+        
+        filemenu = [CBPara{3},CBPara{4}]
+        
+        if strcmp(selected,'From File')
+            filemenu.Enable = 'on'
+            filePanel.Enable = 'on'
+            broswerButton.Enable = 'on'
+        else
+            set(filemenu,'Enable','off')
+            filePanel.Enable = 'off'
+            broswerButton.Enable = 'off'
+        end
+        
+        switch selected
+            case 'Example Waveforms'
+                % Load Options and turn on Waveform Selection
+                    % Extract Heading from Waveform File
+                    file = 'C:\Users\Anton Keys\Desktop\Focus Group\MATLAB\ExWaveData'
+                    [num,header,~] = xlsread(file)
+                    
+                    % Load waveform headings Wave Options
+                    empty = cellfun('isempty',header)
+                    waveTitles = header(~empty)
+                    waveOp.String = [waveOp.String;waveTitles(:)]
+               
+                    % Turn the WaveForm Options on
+                    waveOp.Enable = 'on'
+                
+                    % Setup Callback
+                    waveOp.Callback = {@waveOp_Callback,{num,header,timeHistoryPlot}}
+                    
+            case 'Waveform Generator' 
+                % Create random data and store it in the
+                % Userdata of cycle options
+                ranData = randomnumberfactory
+                cycleOp.UserData = ranData
+                cycleOp.Enable = 'on'
+            %    filePanel.Enable = 'off'
+             %   broswerButton.Enable = 'off'
+            case 'From File'
+                cycleOp.Enable = 'on'
+                % Enable the file controls
+             %   filePanel.Enable = 'on'
+              %  broswerButton.Enable = 'on'
+        end
+    end
+    
         % Create random data and store it in the
         % Userdata of cycle options
         ranData = randomnumberfactory
-        cycleOp.UserData{2} = ranData
+        cycleOp.UserData = ranData
         
-        % Define axes for plot within panel
-        timePlot = axes('Parent',timeHistoryPanel,...
-                    'Position',[0,0,1,1])
+        % Plot the time history
+        subplot(timeHistoryPlot)
         plot(ranData(:,1),ranData(:,2))
         
     end
     
-    % Random Number Callback
-function cycleOp_Callback(handle,data)
+    % Cycle Option Callback
+function cycleOp_Callback(handle,data,CBPara)
 
     % Create random data and store it in the RandomNumB Userdata
-    inputControlPanel = handle.UserData{1}
-    data = handle.UserData{2}
+    inputControlPanel = CBPara{1}
+    histogram3DPlot = CBPara{2}
+    data = handle.UserData
 
     % Determine which button was pressed
     selection = handle.Value
     selected = handle.String{selection}
+    
+                    
 
     if selection > 2
         
-        if selection == or(5,8)
+        if any([5,8] == selection)
             inputControlPanel.Visible = 'on'
         else
             inputControlPanel.Visible = 'off'
@@ -145,10 +215,24 @@ function cycleOp_Callback(handle,data)
             case 'Peak Valley Counting' 
                 cycle = peakValleyCounting(data);
             case 'Level Crossing'
-                lvl = .1;%NOTE: change for UI
+                slider = uicontrol(inputControlPanel,'Style', 'slider',...
+                            'Min',0,'Max',50,'Value',5,...
+                            'SliderStep',[0.02,0.1],...
+                            'Position', [0 0 60 20])
+                sliderTxt = uicontrol(inputControlPanel,'Style', 'edit',...
+                            'String','5',...
+                            'Position', [60 0 40 20])
+                
+                slider.Callback = {@slideNumber,{sliderTxt,data}}
+                sliderTxt.Callback = {@slideNumber,{slider,data}}
+                
+               % axes('Parent',histogram3DPlot,...
+                %    'OuterPosition',[0,0,1,1])
+                lvl = slider.Value;
                 output = levelCrossing(data,lvl);
                 n = length(output);
                 cycle = [zeros(n,2),output];
+                
             case '3-Point Rainflow'
                 cycle = rainflow3p(data);
             case '4-Point Rainflow'
@@ -164,22 +248,93 @@ function cycleOp_Callback(handle,data)
                 cycle = rmsMethod(data);
         end
     end
-  
-% Build UI Home screen
-    % Location and Size
-    DisLoc = [700,50]
-    DisSize = [600,560]
     
-    % Load window properties
-    dis = figure('tag','DisWin',...
-            'Visible','off',...
-            'Name',selected,...
-            'Position',[DisLoc,DisSize],...
-            'NumberTitle','Off');
+    % Extract range and mean data for display
+    rangeAndMean = cycle(:,3:4)
     
-    displayHistogram(cycle);
-            
-    % Make the UI visible.
-    dis.Visible = 'on';
-    end
+    % Plot on the histogram3DPlot and label the axes
+    subplot(histogram3DPlot)
+    hist3(histogram3DPlot,[rangeAndMean(:,1),rangeAndMean(:,2)]);
+    xlabel('Range'); ylabel('Mean'); zlabel('Cycles');
+end
+    
+function slideNumber(handle,data,otherObject)
 
+    % Determine if the handle is to the slider or the text box
+    controlType = handle.Style
+    
+    % Change the value of the slide to that of the text box
+    switch controlType
+        case 'slider'
+            slider = handle
+            otherObject{1}.String = num2str(slider.Value)
+            
+        case 'edit'
+            slider = otherObject{1}
+            if str2num(handle.String) > slider.Max
+                slider.Value = slider.Max
+                handle.String = num2str(slider.Value)
+            else
+                slider.Value = str2num(handle.String)
+            end
+    end
+                    lvl = slider.Value;
+                output = levelCrossing(otherObject{2},lvl);
+                n = length(output);
+                cycle = [zeros(n,2),output];
+                displayHistogram(cycle);
+
+end
+
+function fileSelection_Callback(handle,data,CBPara)
+
+    % Extract UIcontrols
+    filePanel = CBPara
+
+    % Open the file navigation system to look for Excel file
+        [filename,path] = uigetfile({'*.xls;*.xlsx;*.xlsm;*.xltx;*.xltm',...
+                        'Excel Files (*.xls,*.xlsx,*.xlsm,*.xltx,*.xltm)'},'File Selector');
+                    
+    % Combine the filename and path into one string
+        file = strcat(path,filename);
+    
+    % Extract the data from the file
+        [num,header,data] = xlsread(file);
+        
+    % Input file name in filePanel field   
+        filePanel.String = file
+end
+
+function waveOp_Callback(handle,data,CBPara)
+    
+    % Determine which button was pressed
+    selection = handle.Value;
+    selected = handle.String{selection};
+    
+    % Extract the spreedsheet data
+    numbers = CBPara{1};
+    header = CBPara{2};
+    timeHistoryPlot = CBPara{3};
+    
+    % Find the location of the selected option
+    [row,col] = find(strcmp(header,selected));
+    
+    % Extract the columns from the data & remove entries that are NaN
+    columnOfValues = numbers(:,col:col+1);
+    isF = isfinite(columnOfValues);
+    finiteValues = columnOfValues(isF(:,1),:);
+    
+    % Store the data in UserData of the dropdown
+    handle.UserData = finiteValues;
+    
+    % Plot the time history
+        subplot(timeHistoryPlot);
+        plot(finiteValues(:,1),finiteValues(:,2));
+end
+
+function plotWindow(handle,data,CBPara)
+
+    figure
+    handle
+
+end
