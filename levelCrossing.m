@@ -1,16 +1,10 @@
 function [rangeData] = levelCrossing(array,lvl)
 
 
-array = findReversals(array);
+history = findReversals(array);
 lvlSize = lvl;
 
-X = 1:length(array);
-Y = array;
-plot1 = plot(X,Y);
-
-history = [X(:),Y];
-
-n = length(array);
+n = length(history);
 
 high = floor(max(history(:,2))/lvlSize);  % Build lvlCount matrix
 low = floor(min(history(:,2))/lvlSize);
@@ -19,11 +13,11 @@ lvlCount = [x(:),zeros(high-low+1,1)];
 
 for i = 2:n   % Iterate from the first number to the 2nd to last
 
-    start = floor(Y(i-1)/lvlSize);  % Determine where to start counting levels
+    start = floor(history(i-1,2)/lvlSize);  % Determine where to start counting levels
     
-    if Y(i) > 0     % If the current value is positive...
-        finish = floor(Y(i)/lvlSize);   % ... determine the highest level that is crossed
-        if Y(i-1) < 0           % If the range starts at a negative number
+    if history(i,2) > 0     % If the current value is positive...
+        finish = floor(history(i,2)/lvlSize);   % ... determine the highest level that is crossed
+        if history(i-1,2) < 0           % If the range starts at a negative number
             count = 0;          % ... begin the count at 0
         else
             count = start + 1;  % ... otherwise start at the first level that was crossed
@@ -33,8 +27,8 @@ for i = 2:n   % Iterate from the first number to the 2nd to last
             count = count + 1;  % Continue to next highest level
         end
     else            % ... otherwise, it is negative
-        finish = ceil(Y(i)/lvlSize); % ... determine the lowest level that is crossed
-        if Y(i-1) > 0           % If the range starts at a positive number
+        finish = ceil(history(i,2)/lvlSize); % ... determine the lowest level that is crossed
+        if history(i-1,2) > 0           % If the range starts at a positive number
             count = -1;         % ... begin the count at -i
         else
             count = start;      % ... otherwise start at the first level that was crossed
