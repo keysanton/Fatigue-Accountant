@@ -1,4 +1,4 @@
-function [rangeData] = levelCrossing(array,lvl)
+function [cycle] = levelCrossing(array,lvl)
 
 
 history = findReversals(array);
@@ -75,4 +75,7 @@ newHistory = zeros(m,2);
 
     end
     
+    
+            n = length(rangeData);
+                cycle = [zeros(n,2),rangeData];
 end
