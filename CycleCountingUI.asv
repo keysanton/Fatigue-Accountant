@@ -201,10 +201,11 @@ function slideNumber(handle,data,otherObject)
             end
     end
                     lvl = slider.Value;
-                    func = otherObject{5}
+                    func = otherObject{3}
                 output = func(otherObject{2},lvl);
-                
-                plotHistograms(output,otherObject{3},otherObject{4})
+                n = length(output);
+                cycle = [zeros(n,2),output];
+                displayHistogram(cycle);
 
 end
 
@@ -341,8 +342,8 @@ function cycleOp_Callback(handle,data,CBPara)
                             'String',slider.Value,...
                             'Position', [60 0 40 20])
                 
-                slider.Callback = {@slideNumber,{sliderTxt,data,histogram3DPlot,histogram2DPlot,@levelCrossing}}
-                sliderTxt.Callback = {@slideNumber,{slider,data,histogram3DPlot,histogram2DPlot}}
+                slider.Callback = {@slideNumber,{sliderTxt,data,@levelCrossing}}
+                sliderTxt.Callback = {@slideNumber,{slider,data}}
                 
                 % Preform initial data analysis
                 lvl = slider.Value;
@@ -364,7 +365,7 @@ function cycleOp_Callback(handle,data,CBPara)
                             'String',slider.Value,...
                             'Position', [60 0 40 20])
                 
-                slider.Callback = {@slideNumber,{sliderTxt,data,histogram3DPlot,histogram2DPlot,@racetrack}}
+                slider.Callback = {@slideNumber,{sliderTxt,data,histogram3DPlot,histogram2DPlot,@levelCrossing}}
                 sliderTxt.Callback = {@slideNumber,{slider,data,histogram3DPlot,histogram2DPlot}}
                 
                 % Preform initial data analysis
@@ -381,8 +382,10 @@ function cycleOp_Callback(handle,data,CBPara)
                 cycle = rmsMethod(data);
         end
         
-    % Extract range and mean data for display  
-    plotHistograms(cycle,histogram3DPlot,histogram2DPlot)
+    % Extract range and mean data for display
+    rangeAndMean = cycle(:,3:4)
+    
+    plotHistograms(rangeAndMean,histogram3DPlot,histogram2DPlot)
     
     end
     
