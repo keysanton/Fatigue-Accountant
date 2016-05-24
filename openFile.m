@@ -1,4 +1,4 @@
-function [finiteValues] = openFile()
+function finiteValues = openFile()
 
     % Open the file navigation system to look for Excel file
     [filename,path] = uigetfile({'*.xls;*.xlsx;*.xlsm;*.xltx;*.xltm',...
